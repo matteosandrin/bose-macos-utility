@@ -198,41 +198,33 @@ extension AppDelegate {
         exit(-1)
     }
     
-    @objc func noiseCancellationOff() {
-        print("Turning the noise cancellation off")
-        var data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x00]
-        // If the channel is open send the appropriate data on it. How did I figure out what to send? Check README.md for information
+    @objc func sendCommand(data : [UInt8]) {
+        var localData = data;
         if let isOpen = self.channel?.isOpen(), isOpen {
             var result: [UInt8] = []
-            let ret = channel?.writeAsync(&data, length: UInt16(data.count), refcon: &result)
+            let ret = channel?.writeAsync(&localData, length: UInt16(data.count), refcon: &result)
             print(krToString(ret!))
         } else {
             print("The channel is not open")
         }
+    }
+    
+    @objc func noiseCancellationOff() {
+        print("Turning the noise cancellation off")
+        let data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x00]
+        sendCommand(data: data);
     }
     
     @objc func noiseCancellationMedium() {
         print("Turning the noise cancellation to medium setting")
-        var data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x03]
-        if let isOpen = self.channel?.isOpen(), isOpen {
-            var result: [UInt8] = []
-            let ret = channel?.writeAsync(&data, length: UInt16(data.count), refcon: &result)
-            print(krToString(ret!))
-        } else {
-            print("The channel is not open")
-        }
+        let data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x03]
+        sendCommand(data: data);
     }
     
     @objc func noiseCancellationHigh() {
         print("Turning the noise cancellation to high setting")
-        var data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x01]
-        if let isOpen = self.channel?.isOpen(), isOpen {
-            var result: [UInt8] = []
-            let ret = channel?.writeAsync(&data, length: UInt16(data.count), refcon: &result)
-            print(krToString(ret!))
-        } else {
-            print("The channel is not open")
-        }
+        let data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x01]
+        sendCommand(data: data);
     }
     
     @objc func refreshPairedDevicesList() {
