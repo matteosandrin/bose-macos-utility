@@ -11,6 +11,7 @@
 		B030FD3B2683DB60007BF571 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B030FD3A2683DB60007BF571 /* Assets.xcassets */; };
 		B030FD3E2683DB60007BF571 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B030FD3C2683DB60007BF571 /* Main.storyboard */; };
 		B082781F26C5D087007C0AC7 /* NSMenuExtended.swift in Sources */ = {isa = PBXBuildFile; fileRef = B082781E26C5D087007C0AC7 /* NSMenuExtended.swift */; };
+		EC74402427AF2DDF00D65009 /* BMUBluetoothManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC74402327AF2DDE00D65009 /* BMUBluetoothManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		B030FD3F2683DB60007BF571 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B030FD402683DB60007BF571 /* bose_macos_utility.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bose_macos_utility.entitlements; sourceTree = "<group>"; };
 		B082781E26C5D087007C0AC7 /* NSMenuExtended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSMenuExtended.swift; sourceTree = "<group>"; };
+		EC74402327AF2DDE00D65009 /* BMUBluetoothManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BMUBluetoothManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				B030FD362683DB5C007BF571 /* AppDelegate.swift */,
+				EC74402327AF2DDE00D65009 /* BMUBluetoothManager.swift */,
 				B082781E26C5D087007C0AC7 /* NSMenuExtended.swift */,
 				B030FD3A2683DB60007BF571 /* Assets.xcassets */,
 				B030FD3C2683DB60007BF571 /* Main.storyboard */,
@@ -133,6 +136,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B082781F26C5D087007C0AC7 /* NSMenuExtended.swift in Sources */,
+				EC74402427AF2DDF00D65009 /* BMUBluetoothManager.swift in Sources */,
 				B030FD372683DB5C007BF571 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

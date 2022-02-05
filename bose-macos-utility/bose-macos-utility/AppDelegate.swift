@@ -15,8 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarItem: NSStatusItem!
     var statusBarMenu: NSMenu!
     var selectDeviceMenu: NSMenu!
-    var pairedDevices: [IOBluetoothDevice] = []
-    var channel: IOBluetoothRFCOMMChannel?
+    var bluetoothManager: BMUBluetoothManager = BMUBluetoothManager()
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // We need to setup the status bar first, since we want to add the paired devices to it in the second call
@@ -92,18 +91,19 @@ extension AppDelegate {
         statusBarMenu.addItem(withTitle: "Quit",
                               action: #selector(quit),
                               keyEquivalent: "")
+        
+        let pairedDevicesMenu = NSMenuItem()
+        pairedDevicesMenu.title = "Get devices paired to headphones"
+        pairedDevicesMenu.action = #selector(getBosePairedDevicesList)
+        statusBarItem.menu?.addItem(pairedDevicesMenu)
     }
 }
 
 // MARK: - Bluetooth specific methods
 extension AppDelegate {
     private func setupConnectionToHeadphones() {
-        // Get all the paired devices
-        guard let devices = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] else {
-            print("No paired devices found")
-            return
-        }
         
+        let devices = bluetoothManager.getLocalPairedDevices(refresh: true)
         if devices.isEmpty {
             print("No paired devices found")
             return
@@ -114,7 +114,7 @@ extension AppDelegate {
         self.selectDeviceMenu.addItem(separatorItem)
         
         // Append the found devices to the list
-        self.pairedDevices.append(contentsOf: devices)
+        self.bluetoothManager.localPairedDevices.append(contentsOf: devices)
         
         // Set up the initial menus
         devices.forEach { device in
@@ -126,68 +126,6 @@ extension AppDelegate {
             self.selectDeviceMenu.addItem(deviceItem)
         }
     }
-    
-    func connectToDevice(with name: String) -> Bool {
-        guard let device = self.pairedDevices.first(where: { $0.name == name }) else {
-            print("Could not find the selected device")
-            return false
-        }
-        
-        var ret: IOReturn!
-        ret = device.performSDPQuery(self, uuids: [])
-        
-        if ret != kIOReturnSuccess {
-            fatalError("SDP Query unsuccessful")
-        }
-        
-        // Check if the device contains the required service.
-        // Only if SPP Dev is available, these are probably the right headphones
-        guard let services = device.services as? [IOBluetoothSDPServiceRecord],
-            let serviceHeadset = services.first(where: { service -> Bool in
-                service.getServiceName() == "SPP Dev"
-            }) else {
-                print("Could not find the required service.")
-                return false
-        }
-        
-        // Prepare to open an rfcomm channel to the headphones
-        // Channel Id always comes in a sequence 8 8 9 9 8 8 9 9 ... -> in this context it is irrelevant
-        var channelId: BluetoothRFCOMMChannelID = BluetoothRFCOMMChannelID()
-        serviceHeadset.getRFCOMMChannelID(&channelId) // Add a check for the returned value later
-        
-        // Open a rfcomm channel to the headset
-        // Headphones use the "SPP Dev" service to provide information for the app on iOS devices, we can use the same one here
-        var channel: IOBluetoothRFCOMMChannel? = nil
-        
-        let ret2 = device.openRFCOMMChannelSync(&channel,
-                                                withChannelID: channelId,
-                                                delegate: self)
-        
-        // Set the reference for later
-        self.channel = channel
-        if ret2 != kIOReturnSuccess {
-            fatalError("Failed to open an rfcomm channel")
-        }
-        
-        IOBluetoothRFCOMMChannel.register(forChannelOpenNotifications: self,
-                                          selector: #selector(newRFCOMMChannelOpened),
-                                          withChannelID: channelId,
-                                          direction: kIOBluetoothUserNotificationChannelDirectionIncoming)
-        
-        // If everything went okay, return true
-        return true
-    }
-    
-    @objc func newRFCOMMChannelOpened(userNotification: IOBluetoothUserNotification,
-                                      channel: IOBluetoothRFCOMMChannel) {
-        print("New channel opened: \(channel.getID()), isOpen: \(channel.isOpen()), isIncoming: \(channel.isIncoming())")
-        channel.setDelegate(self)
-    }
-}
-
-// MARK: - RFCOMMChannel delegate methods
-extension AppDelegate: IOBluetoothRFCOMMChannelDelegate {
-    
 }
 
 // MARK: - Menu item selection handlers
@@ -198,41 +136,38 @@ extension AppDelegate {
         exit(-1)
     }
     
-    @objc func sendCommand(data : [UInt8]) {
-        var localData = data;
-        if let isOpen = self.channel?.isOpen(), isOpen {
-            var result: [UInt8] = []
-            let ret = channel?.writeAsync(&localData, length: UInt16(data.count), refcon: &result)
-            print(krToString(ret!))
-        } else {
-            print("The channel is not open")
-        }
+    @objc func initCommand() {
+        print("sending init command")
+        let data : [UInt8] = [0x00, 0x03, 0x01, 0x00]
+        bluetoothManager.sendCommand(data: data)
     }
     
     @objc func noiseCancellationOff() {
         print("Turning the noise cancellation off")
         let data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x00]
-        sendCommand(data: data);
+        bluetoothManager.sendCommand(data: data);
     }
     
     @objc func noiseCancellationMedium() {
         print("Turning the noise cancellation to medium setting")
         let data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x03]
-        sendCommand(data: data);
+        bluetoothManager.sendCommand(data: data);
     }
     
     @objc func noiseCancellationHigh() {
         print("Turning the noise cancellation to high setting")
         let data: [UInt8] = [0x01, 0x06, 0x02, 0x01, 0x01]
-        sendCommand(data: data);
+        bluetoothManager.sendCommand(data: data);
+    }
+    
+    @objc func getBosePairedDevicesList() {
+        print("Getting the list of devices paired with the Bose headphones")
+        let data: [UInt8] = [0x04, 0x04, 0x01, 0x00]
+        bluetoothManager.sendCommand(data: data)
     }
     
     @objc func refreshPairedDevicesList() {
-        guard let devices = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] else {
-            print("No paired devices found")
-            return
-        }
-        
+        let devices = bluetoothManager.getLocalPairedDevices(refresh: true)
         devices.forEach { device in
             let deviceItem = NSMenuItem(title: device.name, action: #selector(deviceSelected(sender:)), keyEquivalent: "")
             deviceItem.title = device.name
@@ -247,20 +182,15 @@ extension AppDelegate {
         }
         
         // Connect to the device with a name that is equal to the sender title
-        if self.connectToDevice(with: senderItem.title) {
+        if self.bluetoothManager.connectToDevice(with: senderItem.title) {
             print("Successfully connected to the Bose headphones")
+            initCommand()
         } else {
             print("Something went wrong")
         }
     }
     
-    func krToString (_ kr: kern_return_t) -> String {
-        if let cStr = mach_error_string(kr) {
-            return String (cString: cStr)
-        } else {
-            return "Unknown kernel error \(kr)"
-        }
-    }
+    
 }
 
 extension AppDelegate: NSMenuDelegate {
